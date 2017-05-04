@@ -1,6 +1,9 @@
 package com.python.cat.animatorbutton;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -11,6 +14,7 @@ import android.graphics.RectF;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
 
 import com.apkfuns.logutils.LogUtils;
 
@@ -38,12 +42,15 @@ public class AnimatorButton extends View {
     private PointF centerPoint;
     private int radiusMax;
     private float curRadius;
-    private ValueAnimator rect2CircleAnimator;
+    private ValueAnimator rect2RoundAnimator;
     private AnimatorSet animatorSet;
     private RectF textRectF;
     private int divider;
     private int outerLength;
     private ValueAnimator roundRectF2CircleAnimator;
+    private Animator moveUpAnimator;
+    private float moveDistance = 300;
+    private ValueAnimator finishTextAnimator;
 
     public AnimatorButton(Context context) {
         this(context, null);
@@ -74,14 +81,54 @@ public class AnimatorButton extends View {
         outerRectF = new RectF();
         textRectF = new RectF();
         animatorSet = new AnimatorSet();
+        animatorSet.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+
+            }
+        });
+    }
+
+    private void setFinishTextAnimator() {
+//        textPaint.setAlpha(255);
+//        invalidate();
+        finishTextAnimator = ValueAnimator.ofInt(0, 255);
+        finishTextAnimator.setDuration(DEFAULT_DURATION);
+        finishTextAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                int value = (int) animation.getAnimatedValue();
+                textPaint.setAlpha(value);
+                invalidate();
+            }
+        });
     }
 
     private void setAnimator() {
         setRoundRect();
         setRoundRectF2Circle();
+        setViewUp();
+        setFinishTextAnimator();
         animatorSet
-                .play(rect2CircleAnimator)
-                .before(roundRectF2CircleAnimator)
+                .play(moveUpAnimator)
+                .with(finishTextAnimator)
+                .after(roundRectF2CircleAnimator)
+                .after(rect2RoundAnimator)
         ;
     }
 
@@ -134,12 +181,16 @@ public class AnimatorButton extends View {
                 // max --> 255 min --> 0
                 // 600 -> 150  599 598
                 double alpha = 1.0 * (value - min) / (max - min) * 255;
-                LogUtils.w("#### max = " + width + " , min = " + radiusMax * 2);
-                LogUtils.e("alpha = " + alpha + " , value = " + value
-                        + " max=" + max + " min = " + min
-                        + " up = " + (value - min) + " down = " + (max - min));
                 textPaint.setAlpha((int) alpha);
                 invalidate();
+            }
+        });
+        roundRectF2CircleAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                textPaint.setTextSize(36); // TODO
+                textStr = "OK";
             }
         });
     }
@@ -155,15 +206,16 @@ public class AnimatorButton extends View {
         textRectF.right = width;
         textRectF.bottom = height;
         Paint.FontMetricsInt fontMetrics = textPaint.getFontMetricsInt();
-        int baseline = (int) ((textRectF.bottom + textRectF.top - fontMetrics.bottom - fontMetrics.top) / 2);
+        int baseline = (int) ((textRectF.bottom + textRectF.top
+                - fontMetrics.bottom - fontMetrics.top) / 2);
         // 文字绘制到整个布局的中心位置
         canvas.drawText(textStr, textRectF.centerX(), baseline, textPaint);
     }
 
     private void setRoundRect() {
-        rect2CircleAnimator = ValueAnimator.ofInt(0, radiusMax);
-        rect2CircleAnimator.setDuration(DEFAULT_DURATION); // TODO=-->
-        rect2CircleAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+        rect2RoundAnimator = ValueAnimator.ofInt(0, radiusMax);
+        rect2RoundAnimator.setDuration(DEFAULT_DURATION); // TODO=-->
+        rect2RoundAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 LogUtils.i("update curRadius--> " + animation.getAnimatedValue());
@@ -173,8 +225,23 @@ public class AnimatorButton extends View {
         });
     }
 
+    private void setViewUp() {
+        final float curTranslationY = this.getTranslationY();
+        moveUpAnimator = ObjectAnimator.ofFloat(this, "translationY",
+                curTranslationY, curTranslationY - moveDistance);
+//        moveUpAnimator.addListener(new AnimatorListenerAdapter() {
+//            @Override
+//            public void onAnimationEnd(Animator animation) {
+//                super.onAnimationEnd(animation);
+//                textPaint.setTextSize(36); // TODO
+//                textStr = "OK";
+//            }
+//        });
+        moveUpAnimator.setDuration(DEFAULT_DURATION);
+        moveUpAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+    }
+
     public void start() {
         animatorSet.start();
     }
-
 }
