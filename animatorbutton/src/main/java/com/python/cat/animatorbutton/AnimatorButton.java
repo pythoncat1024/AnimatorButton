@@ -45,12 +45,12 @@ public class AnimatorButton extends View {
     private ValueAnimator rect2RoundAnimator;
     private AnimatorSet animatorSet;
     private RectF textRectF;
-    private int divider;
     private int outerLength;
     private ValueAnimator roundRectF2CircleAnimator;
     private Animator moveUpAnimator;
-    private float moveDistance = 300;
+    private float moveDistance = 300; //TODO
     private ValueAnimator finishTextAnimator;
+    private Runnable mEnd;
 
     public AnimatorButton(Context context) {
         this(context, null);
@@ -89,7 +89,9 @@ public class AnimatorButton extends View {
 
             @Override
             public void onAnimationEnd(Animator animation) {
-
+                if (mEnd != null) {
+                    mEnd.run();
+                }
             }
 
             @Override
@@ -233,7 +235,13 @@ public class AnimatorButton extends View {
         moveUpAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
     }
 
-    public void start() {
+    /**
+     *
+     * @param end 动画结束的回调
+     */
+    public void start(@Nullable Runnable end) {
+        mEnd = end;
         animatorSet.start();
     }
+
 }
