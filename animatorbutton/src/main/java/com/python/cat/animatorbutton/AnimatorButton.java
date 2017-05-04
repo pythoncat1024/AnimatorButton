@@ -229,14 +229,6 @@ public class AnimatorButton extends View {
         final float curTranslationY = this.getTranslationY();
         moveUpAnimator = ObjectAnimator.ofFloat(this, "translationY",
                 curTranslationY, curTranslationY - moveDistance);
-//        moveUpAnimator.addListener(new AnimatorListenerAdapter() {
-//            @Override
-//            public void onAnimationEnd(Animator animation) {
-//                super.onAnimationEnd(animation);
-//                textPaint.setTextSize(36); // TODO
-//                textStr = "OK";
-//            }
-//        });
         moveUpAnimator.setDuration(DEFAULT_DURATION);
         moveUpAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
     }
