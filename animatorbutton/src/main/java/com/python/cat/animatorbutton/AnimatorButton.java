@@ -29,6 +29,7 @@ public class AnimatorButton extends View {
         LogUtils.getLogConfig().configShowBorders(false);
     }
 
+    private final int DEFAULT_DURATION = 1000;
     private Paint outerPaint;
     private Paint textPaint;
 
@@ -37,9 +38,12 @@ public class AnimatorButton extends View {
     private PointF centerPoint;
     private int radiusMax;
     private float curRadius;
-    private int rect2CircleDuration = 1000;
     private ValueAnimator rect2CircleAnimator;
     private AnimatorSet animatorSet;
+    private RectF textRectF;
+    private int divider;
+    private int outerLength;
+    private ValueAnimator roundRectF2CircleAnimator;
 
     public AnimatorButton(Context context) {
         this(context, null);
@@ -55,17 +59,30 @@ public class AnimatorButton extends View {
     }
 
     private void init() {
+        // outerPaint
         outerPaint = new Paint();
         outerPaint.setColor(Color.parseColor("#3F51B5"));// TODO -->
         outerPaint.setStyle(Paint.Style.FILL);
+
+        // textPaint
+        textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setTextSize(40); // TODO -->
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setAntiAlias(true);
+
         outerRectF = new RectF();
+        textRectF = new RectF();
         animatorSet = new AnimatorSet();
     }
 
     private void setAnimator() {
         setRoundRect();
+        setRoundRectF2Circle();
         animatorSet
-                .play(rect2CircleAnimator);
+                .play(rect2CircleAnimator)
+                .before(roundRectF2CircleAnimator)
+        ;
     }
 
     @Override
@@ -78,10 +95,12 @@ public class AnimatorButton extends View {
         outerRectF.right = width;
         outerRectF.top = 0;
         outerRectF.bottom = height;
+        outerLength = width;
         centerPoint = new PointF();
         centerPoint.x = Math.round(outerRectF.right / 2.0 - outerRectF.left / 2.0);
         centerPoint.y = Math.round(outerRectF.bottom / 2.0 - outerRectF.top / 2.0);
         LogUtils.d("centerPoint.x = " + centerPoint.x + " , .y = " + centerPoint.y);
+
         radiusMax = Math.min(width, height) / 2;
         LogUtils.d("radiusMax = " + radiusMax);
         setAnimator();
@@ -90,12 +109,60 @@ public class AnimatorButton extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        drawOuterRectF(canvas);
+        drawText(canvas);
+    }
+
+    private void drawOuterRectF(Canvas canvas) {
+        outerRectF.left = centerPoint.x - outerLength / 2;
+        outerRectF.right = centerPoint.x + outerLength / 2;
         canvas.drawRoundRect(outerRectF, curRadius, curRadius, outerPaint);
+    }
+
+    private void setRoundRectF2Circle() {
+        // max --> min
+        final int min = radiusMax * 2;
+        final int max = width;
+        roundRectF2CircleAnimator = ValueAnimator.ofInt(width, radiusMax * 2);
+        roundRectF2CircleAnimator.setDuration(DEFAULT_DURATION);// TODO -->
+        roundRectF2CircleAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                int value = (int) animation.getAnimatedValue();
+                LogUtils.d("rect2circle ---> " + value);
+                outerLength = value;
+                // max --> 255 min --> 0
+                // 600 -> 150  599 598
+                double alpha = 1.0 * (value - min) / (max - min) * 255;
+                LogUtils.w("#### max = " + width + " , min = " + radiusMax * 2);
+                LogUtils.e("alpha = " + alpha + " , value = " + value
+                        + " max=" + max + " min = " + min
+                        + " up = " + (value - min) + " down = " + (max - min));
+                textPaint.setAlpha((int) alpha);
+                invalidate();
+            }
+        });
+    }
+
+    /**
+     * 绘制文字
+     *
+     * @param canvas 画布
+     */
+    private void drawText(Canvas canvas) {
+        textRectF.left = 0;
+        textRectF.top = 0;
+        textRectF.right = width;
+        textRectF.bottom = height;
+        Paint.FontMetricsInt fontMetrics = textPaint.getFontMetricsInt();
+        int baseline = (int) ((textRectF.bottom + textRectF.top - fontMetrics.bottom - fontMetrics.top) / 2);
+        // 文字绘制到整个布局的中心位置
+        canvas.drawText(textStr, textRectF.centerX(), baseline, textPaint);
     }
 
     private void setRoundRect() {
         rect2CircleAnimator = ValueAnimator.ofInt(0, radiusMax);
-        rect2CircleAnimator.setDuration(rect2CircleDuration);
+        rect2CircleAnimator.setDuration(DEFAULT_DURATION); // TODO=-->
         rect2CircleAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
